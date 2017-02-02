@@ -61,7 +61,6 @@ public class Conform {
             violetInterface.stream().filter(x->violetClass.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
             //  Null Names Rule: classes and interfaces cannot have null names
-            
             violetClass.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("class",t)));
             violetInterface.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("interface",t)));
             
@@ -73,17 +72,23 @@ public class Conform {
             violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !t.is("role1","0..1")).forEach(t->er.add(diamond(t)));
             violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !t.is("role2","0..1")).forEach(t->er.add(diamond(t)));
             
+            // HEY WHAT ERROR MESSAAGE DO WE USE FOR THIS ONE???????
             // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
-
+            violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(diamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(diamond(t)));
+            
             //  Non-Empty Rule: inheritance associations cannot have non-empty roles
 
             // Dotted Inheritance Rule: dotted lines exist only between classes and interfaces
-
+            violetAssociation.stream().filter(t->t.is("lineStyle","DOTTED") && (t.is("type1","classnode") && t.is("type2","classnode") || t.is("type1","interfaces") && t.is("type2","interfaces"))).forEach(t->er.add(dotted(t)));
+            
             // Interface cannot implement Class Rule: implements is drawn from class to interface
 
             // Self Inheritance Rule: no class or interface can inherit from itself
 
+            // HEY IS THIS THE SAME AS THE DOTTED INHERITANCE RULE????????
             // Dotted Association Rule: non-inheritance association cannot be dotted
+            violetAssociation.stream().filter(t->t.is("type1","classnode") && t.is("type2","classnode") && t.is("lineStyle","DOTTED")).forEach(t->er.add(noDottedAssoc(t)));
             
             // report errors
             er.printReport(System.out);
