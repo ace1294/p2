@@ -38,12 +38,8 @@ public class Conform {
             
             vpl = DB.readDataBase(args[0]);
             violetClass = vpl.getTable("violetClass");
-            
-            violetClass.tuples().forEach((t) -> {
-                t.print(System.out);
-            });
-            
             violetInterface = vpl.getTable("violetInterface");
+            
             violetAssociation = vpl.getTable("violetAssociation");
             violetMiddleLabels = vpl.getTable("violetMiddleLabels");
 
@@ -51,21 +47,31 @@ public class Conform {
             /** each rule (constraint) has its own static error method below **/
             
             // MiddleLabel Rule: each MiddleLabel tuple generates an error
-            violetMiddleLabels.tuples().forEach((t) -> {
-                middleLabel(t);
-            });
+            violetMiddleLabels.tuples().forEach(t->er.add(middleLabel(t)));
             
             // Unique Names Rule: Classes and Interfaces have unique names constraint
+            violetClass.stream().filter(x->violetClass.stream().filter((y) -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
+            violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
             
-            violetClass.stream().filter(x->violetClass.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->ciShareName("",t));
+            // These only work if the if they name is already used twice. So if there are two class tuples
+            // with the name A and one interface tuple with name A this will work and print out
+            // classes and interfaces share the same name: A but if there is only one class tuple named
+            // A and one interface tuple named A it will not catch the error
+            violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("classes and interfaces",t)));
+            violetInterface.stream().filter(x->violetClass.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
             //  Null Names Rule: classes and interfaces cannot have null names
             
-            violetClass.stream().filter(t->t.isNull("name")).forEach(t->nullName("",t));
+            violetClass.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("class",t)));
+            violetInterface.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("interface",t)));
             
             // Black Diamond Rule: if a black diamond has a cardinality, it must be 1
+            violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !t.is("role1","1")).forEach(t->er.add(blackDiamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !t.is("role2","1")).forEach(t->er.add(blackDiamond(t)));
             
             // Diamonds Rule: if a diamond has a cardinality, it must be 0..1
+            violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !t.is("role1","0..1")).forEach(t->er.add(diamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !t.is("role2","0..1")).forEach(t->er.add(diamond(t)));
             
             // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
 
