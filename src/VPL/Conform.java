@@ -27,7 +27,7 @@ public class Conform {
      * @param args -- single path to vpl database which is to be tested for conformance
      */
     public static void main(String... args) {
-        if (args.length != 1 && !args[0].endsWith(".vpl.pl")) {
+        if (args.length != 1 || !args[0].endsWith(".vpl.pl")) {
             System.out.format("Usage: %s <file.vpl.pl>\n", Conform.class.getName());
             System.out.format("       <file.vpl.pl> will be checked for constraint violations\n");
             return;
@@ -47,18 +47,12 @@ public class Conform {
             /** each rule (constraint) has its own static error method below **/
             
             // MiddleLabel Rule: each MiddleLabel tuple generates an error
-            violetMiddleLabels.tuples().forEach(t->er.add(middleLabel(t)));
+            violetMiddleLabels.tuples().forEach(t->er.add(middleLabel(t)));           
             
             // Unique Names Rule: Classes and Interfaces have unique names constraint
-            violetClass.stream().filter(x->violetClass.stream().filter((y) -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
+            violetClass.stream().filter(x->violetClass.stream().filter(y -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
             violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
-            
-            // These only work if the if they name is already used twice. So if there are two class tuples
-            // with the name A and one interface tuple with name A this will work and print out
-            // classes and interfaces share the same name: A but if there is only one class tuple named
-            // A and one interface tuple named A it will not catch the error
-            violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("classes and interfaces",t)));
-            violetInterface.stream().filter(x->violetClass.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("classes and interfaces",t)));
+            violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>0).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
             //  Null Names Rule: classes and interfaces cannot have null names
             violetClass.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("class",t)));
@@ -72,23 +66,27 @@ public class Conform {
             violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !t.is("role1","0..1")).forEach(t->er.add(diamond(t)));
             violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !t.is("role2","0..1")).forEach(t->er.add(diamond(t)));
             
-            // HEY WHAT ERROR MESSAAGE DO WE USE FOR THIS ONE???????
             // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
-            violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(diamond(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(diamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(arrow(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(arrow(t)));
             
-            //  Non-Empty Rule: inheritance associations cannot have non-empty roles
-
-            // Dotted Inheritance Rule: dotted lines exist only between classes and interfaces
-            violetAssociation.stream().filter(t->t.is("lineStyle","DOTTED") && (t.is("type1","classnode") && t.is("type2","classnode") || t.is("type1","interfaces") && t.is("type2","interfaces"))).forEach(t->er.add(dotted(t)));
+            //  No Labels Rule: inheritance associations cannot have non-empty roles
+            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!t.is("role1","") || !t.is("role2",""))).forEach(t->er.add(noRoles(t)));
             
-            // Interface cannot implement Class Rule: implements is drawn from class to interface
-
+            // Solid Association Rule: non-implements, non-extends association must be solid
+            violetAssociation.stream().filter(t->(t.is("arrow1","") && t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
+            
+            // Extends Constraint: extends relationships must be solid
+            violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
+            
+            // Implements Constraint1 -- implementation relationships must be dotted.
+            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && !t.is("lineStyle","DOTTED")).forEach(t->er.add(dotted(t)));
+            
+            // Implements Constraint2 -- only classes can implement interfaces.
+            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("type1","interfacenode")) || (t.is("arrow2","TRIANGLE") && t.is("type2","interfacenode"))).forEach(t->er.add(impls(t)));
+            
             // Self Inheritance Rule: no class or interface can inherit from itself
-
-            // HEY IS THIS THE SAME AS THE DOTTED INHERITANCE RULE????????
-            // Dotted Association Rule: non-inheritance association cannot be dotted
-            violetAssociation.stream().filter(t->t.is("type1","classnode") && t.is("type2","classnode") && t.is("lineStyle","DOTTED")).forEach(t->er.add(noDottedAssoc(t)));
+            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("cid1",t.get("cid2"))) || (t.is("arrow2","TRIANGLE") && t.is("cid1",t.get("cid2")))).forEach(t->er.add(impls(t)));
             
             // report errors
             er.printReport(System.out);
