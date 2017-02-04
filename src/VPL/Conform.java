@@ -85,8 +85,8 @@ public class Conform {
     
     private static void runAssociationConstraints(ErrorReport er) {
         // Black Diamond Rule: if a black diamond has a cardinality, it must be 1
-        violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !convertRole(t.get("role1")).equals("1")).forEach(t->er.add(blackDiamond(t)));
-        violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !convertRole(t.get("role2")).equals("1")).forEach(t->er.add(blackDiamond(t)));
+        violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && roleHasCard(t.get("role1")) && !convertRole(t.get("role1")).equals("1")).forEach(t->er.add(blackDiamond(t)));
+        violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && roleHasCard(t.get("role2")) && !convertRole(t.get("role2")).equals("1")).forEach(t->er.add(blackDiamond(t)));
 
         // Diamonds Rule: if a diamond has a cardinality, it must be 0..1
         violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !convertRole(t.get("role1")).equals("0..1")).forEach(t->er.add(diamond(t)));
@@ -200,7 +200,34 @@ public class Conform {
         return n;
     }
     
-    /** I give one below: converts a role into just the cardinality since
+    /** Checks to see if the role has cardinality
+     * @param role -- string that comes from the role column (either role1 or role2)
+     * @return returns if the tuple has cardinality
+     */
+    private static boolean roleHasCard(String role) {
+        String[] splitRole = role.split(" ");
+        String card = splitRole[0];
+        switch (card) {
+            case "1":
+                return true;
+            case "0..1":
+                return true;
+            case "n":
+                return true;
+            case "m":
+                return true;
+            case "0..*":
+                return true;
+            case "1..*":
+                return true;
+            case "*":
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    /** Converts a role into just the cardinality since
      * it can have both the rolename and the cardinality
      * id into the name of a class or interface
      * @param role -- string that comes from the role column (either role1 or role2)

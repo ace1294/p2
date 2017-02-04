@@ -1,0 +1,5 @@
+inheritance paired with non-null end (ClassA - ClassB)
+inheritance (ClassA - ClassB) should have no roles
+dotted inheritance cannot connect ClassA to ClassB
+
+3 errors found
