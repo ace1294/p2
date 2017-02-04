@@ -85,34 +85,34 @@ public class Conform {
     
     private static void runAssociationConstraints(ErrorReport er) {
         // Black Diamond Rule: if a black diamond has a cardinality, it must be 1
-            violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !convertRole(t.get("role1")).equals("1")).forEach(t->er.add(blackDiamond(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !convertRole(t.get("role2")).equals("1")).forEach(t->er.add(blackDiamond(t)));
-            
-            // Diamonds Rule: if a diamond has a cardinality, it must be 0..1
-            violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !convertRole(t.get("role1")).equals("0..1")).forEach(t->er.add(diamond(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !convertRole(t.get("role2")).equals("0..1")).forEach(t->er.add(diamond(t)));
-            
-            // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
-            violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(arrow(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(arrow(t)));
-            
-            //  No Labels Rule: inheritance associations cannot have non-empty roles
-            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!convertRole(t.get("role1")).equals("") || !convertRole(t.get("role2")).equals(""))).forEach(t->er.add(noRoles(t)));
-                        
-            // Solid Association Rule: non-implements, non-extends association must be solid
-            violetAssociation.stream().filter(t->(!t.is("arrow1","") && !t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
-            
-            // Extends Constraint: extends relationships must be solid
-            violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(dotted(t)));
-            
-            // Implements Constraint1 -- implementation relationships must be dotted.
-            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && !t.is("lineStyle","DOTTED")).forEach(t->er.add(dotted(t)));
-            
-            // Implements Constraint2 -- only classes can implement interfaces.
-            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("type1","interfacenode")) || (t.is("arrow2","TRIANGLE") && t.is("type2","interfacenode"))).forEach(t->er.add(impls(t)));
-            
-            // Self Inheritance Rule: no class or interface can inherit from itself
-            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("cid1",t.get("cid2"))) || (t.is("arrow2","TRIANGLE") && t.is("cid1",t.get("cid2")))).forEach(t->er.add(impls(t)));
+        violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !convertRole(t.get("role1")).equals("1")).forEach(t->er.add(blackDiamond(t)));
+        violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !convertRole(t.get("role2")).equals("1")).forEach(t->er.add(blackDiamond(t)));
+
+        // Diamonds Rule: if a diamond has a cardinality, it must be 0..1
+        violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !convertRole(t.get("role1")).equals("0..1")).forEach(t->er.add(diamond(t)));
+        violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !convertRole(t.get("role2")).equals("0..1")).forEach(t->er.add(diamond(t)));
+
+        // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
+        violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(arrow(t)));
+        violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(arrow(t)));
+
+        //  No Labels Rule: inheritance associations cannot have non-empty roles
+        violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!convertRole(t.get("role1")).equals("") || !convertRole(t.get("role2")).equals(""))).forEach(t->er.add(noRoles(t)));
+
+        // Solid Association Rule: non-implements, non-extends association must be solid
+        violetAssociation.stream().filter(t->!((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE")) || (t.is("arrow1","V") && !t.is("arrow2","V")) || (!t.is("arrow1","V") && t.is("arrow2","V"))) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
+
+        // Extends Constraint: extends relationships must be solid
+        violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(dotted(t)));
+
+        // Implements Constraint1 -- implementation relationships must be dotted.
+        violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && !t.is("lineStyle","DOTTED")).forEach(t->er.add(dotted(t)));
+
+        // Implements Constraint2 -- only classes can implement interfaces.
+        violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("type1","interfacenode")) || (t.is("arrow2","TRIANGLE") && t.is("type2","interfacenode"))).forEach(t->er.add(impls(t)));
+
+        // Self Inheritance Rule: no class or interface can inherit from itself
+        violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("cid1",t.get("cid2"))) || (t.is("arrow2","TRIANGLE") && t.is("cid1",t.get("cid2")))).forEach(t->er.add(impls(t)));
             
     }
 
