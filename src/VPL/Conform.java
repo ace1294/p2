@@ -66,7 +66,7 @@ public class Conform {
     private static void runNamingConstraints(ErrorReport er) {
         // Unique Names Rule: Classes and Interfaces have unique names constraint
         violetClass.stream().filter(x->violetClass.stream().filter(y -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
-//        violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
+        violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
         violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>0).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
         //  Null Names Rule: classes and interfaces cannot have null names
