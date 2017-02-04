@@ -66,7 +66,7 @@ public class Conform {
     private static void runNamingConstraints(ErrorReport er) {
         // Unique Names Rule: Classes and Interfaces have unique names constraint
         violetClass.stream().filter(x->violetClass.stream().filter(y -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
-        violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
+//        violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
         violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>0).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
         //  Null Names Rule: classes and interfaces cannot have null names
@@ -103,7 +103,7 @@ public class Conform {
             violetAssociation.stream().filter(t->(t.is("arrow1","") && t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
             
             // Extends Constraint: extends relationships must be solid
-            violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
+            violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(dotted(t)));
             
             // Implements Constraint1 -- implementation relationships must be dotted.
             violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && !t.is("lineStyle","DOTTED")).forEach(t->er.add(dotted(t)));
