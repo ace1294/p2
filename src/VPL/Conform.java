@@ -98,9 +98,9 @@ public class Conform {
             
             //  No Labels Rule: inheritance associations cannot have non-empty roles
             violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!convertRole(t.get("role1")).equals("") || !convertRole(t.get("role2")).equals(""))).forEach(t->er.add(noRoles(t)));
-            
+                        
             // Solid Association Rule: non-implements, non-extends association must be solid
-            violetAssociation.stream().filter(t->(t.is("arrow1","") && t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
+            violetAssociation.stream().filter(t->(!t.is("arrow1","") && !t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
             
             // Extends Constraint: extends relationships must be solid
             violetAssociation.stream().filter(t->t.is("type1",t.get("type2")) && ((t.is("arrow1","TRIANGLE") && !t.is("arrow2","TRIANGLE")) || (!t.is("arrow1","TRIANGLE") && t.is("arrow2","TRIANGLE"))) && !t.is("lineStyle","")).forEach(t->er.add(dotted(t)));
