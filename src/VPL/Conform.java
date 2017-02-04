@@ -39,39 +39,65 @@ public class Conform {
             vpl = DB.readDataBase(args[0]);
             violetClass = vpl.getTable("violetClass");
             violetInterface = vpl.getTable("violetInterface");
-            
             violetAssociation = vpl.getTable("violetAssociation");
             violetMiddleLabels = vpl.getTable("violetMiddleLabels");
 
-            /** following are rules/constraints to check on vpl database **/
-            /** each rule (constraint) has its own static error method below **/
             
-            // MiddleLabel Rule: each MiddleLabel tuple generates an error
-            violetMiddleLabels.tuples().forEach(t->er.add(middleLabel(t)));           
+            runConstraints(er);
             
-            // Unique Names Rule: Classes and Interfaces have unique names constraint
-            violetClass.stream().filter(x->violetClass.stream().filter(y -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
-            violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
-            violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>0).forEach(t->er.add(ciShareName("classes and interfaces",t)));
+            // report errors
+            er.printReport(System.out);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    
+    
+    // By the way I felt like this was broken up enough and I kept all the actual
+    // constraints as one lines instead of breaking them out into blocks because
+    // I like the way the one like functional programming looks
+    private static void runConstraints(ErrorReport er) {
+        runNamingConstraints(er);
+        runMiddleLabelConstraint(er);
+        runAssociationConstraints(er);
+    }
+    
+    /*** interface and class name constraints ***/
+    private static void runNamingConstraints(ErrorReport er) {
+        // Unique Names Rule: Classes and Interfaces have unique names constraint
+        violetClass.stream().filter(x->violetClass.stream().filter(y -> y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple classes",t)));
+        violetInterface.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>1).forEach(t->er.add(ciShareName("multiple interfaces",t)));
+        violetClass.stream().filter(x->violetInterface.stream().filter(y->y.is("name", x.get("name"))).count()>0).forEach(t->er.add(ciShareName("classes and interfaces",t)));
             
-            //  Null Names Rule: classes and interfaces cannot have null names
-            violetClass.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("class",t)));
-            violetInterface.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("interface",t)));
-            
-            // Black Diamond Rule: if a black diamond has a cardinality, it must be 1
-            violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !t.is("role1","1")).forEach(t->er.add(blackDiamond(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !t.is("role2","1")).forEach(t->er.add(blackDiamond(t)));
+        //  Null Names Rule: classes and interfaces cannot have null names
+        violetClass.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("class",t)));
+        violetInterface.stream().filter(t->t.is("name","")).forEach(t->er.add(nullName("interface",t)));
+    }
+    
+    /*** middle label constraints ***/
+    private static void runMiddleLabelConstraint(ErrorReport er) {
+        // MiddleLabel Rule: each MiddleLabel tuple generates an error
+            violetMiddleLabels.tuples().forEach(t->er.add(middleLabel(t)));  
+    }
+    
+    
+    /*** association constraints ***/
+    
+    private static void runAssociationConstraints(ErrorReport er) {
+        // Black Diamond Rule: if a black diamond has a cardinality, it must be 1
+            violetAssociation.stream().filter(t->t.is("arrow1","BLACK_DIAMOND") && !convertRole(t.get("role1")).equals("1")).forEach(t->er.add(blackDiamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","BLACK_DIAMOND") && !convertRole(t.get("role2")).equals("1")).forEach(t->er.add(blackDiamond(t)));
             
             // Diamonds Rule: if a diamond has a cardinality, it must be 0..1
-            violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !t.is("role1","0..1")).forEach(t->er.add(diamond(t)));
-            violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !t.is("role2","0..1")).forEach(t->er.add(diamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow1","DIAMOND") && !convertRole(t.get("role1")).equals("0..1")).forEach(t->er.add(diamond(t)));
+            violetAssociation.stream().filter(t->t.is("arrow2","DIAMOND") && !convertRole(t.get("role2")).equals("0..1")).forEach(t->er.add(diamond(t)));
             
             // Triangle Rule: no Triangle association can have anything other than '' for its other arrow 
             violetAssociation.stream().filter(t->t.is("arrow1","TRIANGLE") && !t.is("arrow2","")).forEach(t->er.add(arrow(t)));
             violetAssociation.stream().filter(t->t.is("arrow2","TRIANGLE") && !t.is("arrow1","")).forEach(t->er.add(arrow(t)));
             
             //  No Labels Rule: inheritance associations cannot have non-empty roles
-            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!t.is("role1","") || !t.is("role2",""))).forEach(t->er.add(noRoles(t)));
+            violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") || t.is("arrow2","TRIANGLE")) && (!convertRole(t.get("role1")).equals("") || !convertRole(t.get("role2")).equals(""))).forEach(t->er.add(noRoles(t)));
             
             // Solid Association Rule: non-implements, non-extends association must be solid
             violetAssociation.stream().filter(t->(t.is("arrow1","") && t.is("arrow2","")) && !t.is("lineStyle","")).forEach(t->er.add(noDottedAssoc(t)));
@@ -88,11 +114,6 @@ public class Conform {
             // Self Inheritance Rule: no class or interface can inherit from itself
             violetAssociation.stream().filter(t->(t.is("arrow1","TRIANGLE") && t.is("cid1",t.get("cid2"))) || (t.is("arrow2","TRIANGLE") && t.is("cid1",t.get("cid2")))).forEach(t->er.add(impls(t)));
             
-            // report errors
-            er.printReport(System.out);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
     }
 
     /****  error messages ***/
@@ -177,5 +198,17 @@ public class Conform {
         // should not be null... which also would be an error
         // I'm not checking this but you might...
         return n;
+    }
+    
+    /** I give one below: converts a role into just the cardinality since
+     * it can have both the rolename and the cardinality
+     * id into the name of a class or interface
+     * @param role -- string that comes from the role column (either role1 or role2)
+     * @return returns the cardinality if t exits, if its just a role name 
+     */
+    private static String convertRole(String role) {
+        String[] splitRole = role.split(" ");
+        
+        return splitRole[0];
     }
 }
